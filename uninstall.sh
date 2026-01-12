@@ -1,13 +1,17 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
 set -euo pipefail
 
 # =============================================================================
 # メイン
 # =============================================================================
-zshrc="${HOME}/.zshrc"
+targets=(
+	"${HOME}/.zshrc"
+	"${HOME}/.config/starship.toml"
+)
 
-# シンボリックリンクがあれば削除
-if [[ -L "$zshrc" ]];then
-	rm -f "$zshrc"
-	echo "Deleted symlink: $zshrc"
-fi
+for target in "${targets[@]}"; do
+	if [[ -L "$target" ]]; then
+		rm -f "$target"
+		echo "Deleted symlink: $target"
+	fi
+done

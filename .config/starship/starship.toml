@@ -1,0 +1,10 @@
+format = """
+$directory\
+$git_branch\
+$git_status\
+\n$character
+"""
+
+# シェルのプロンプトの間に空行を挿入する
+add_newline = true
+
