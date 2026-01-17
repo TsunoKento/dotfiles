@@ -6,3 +6,4 @@
 - git
 - starship
     - JetBrainsMono
+- Claude Code

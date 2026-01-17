@@ -42,11 +42,13 @@ ensure_dir() {
 # =============================================================================
 ensure_dir "$BACKUP_DIR"
 ensure_dir "$CONFIG_DIR"
+ensure_dir "$HOME/.claude"
 
 typeset -A files
 files=(
 	"${DOTFILES_DIR}/.config/zsh/.zshrc" "${HOME}/.zshrc"
 	"${DOTFILES_DIR}/.config/starship/starship.toml" "${HOME}/.config/starship.toml"
+	"${DOTFILES_DIR}/.config/claude/settings.json" "${HOME}/.claude/settings.json"
 )
 
 for src dst in "${(@kv)files}"; do
