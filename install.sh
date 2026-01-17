@@ -6,6 +6,7 @@ set -euo pipefail
 # =============================================================================
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 BACKUP_DIR="$HOME/.dotbackup"
+CONFIG_DIR="$HOME/.config"
 
 # =============================================================================
 # 関数
@@ -28,13 +29,19 @@ link_file() {
 	echo "Linked: $dst -> $src"
 }
 
+ensure_dir() {
+	local dir="$1"
+	if [ ! -d "$dir" ]; then
+		echo "$dir が見つかりませんでしたので新規作成します"
+		mkdir "$dir"
+	fi
+}
+
 # =============================================================================
 # メイン
 # =============================================================================
-if [ ! -d "$BACKUP_DIR" ]; then
-	echo "$BACKUP_DIR が見つかりませんでしたので新規作成します"
-	mkdir "$BACKUP_DIR"
-fi
+ensure_dir "$BACKUP_DIR"
+ensure_dir "$CONFIG_DIR"
 
 typeset -A files
 files=(
