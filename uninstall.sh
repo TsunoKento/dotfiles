@@ -7,6 +7,7 @@ set -euo pipefail
 targets=(
 	"${HOME}/.zshrc"
 	"${HOME}/.config/starship.toml"
+	"${HOME}/.claude/settings.json"
 )
 
 for target in "${targets[@]}"; do
