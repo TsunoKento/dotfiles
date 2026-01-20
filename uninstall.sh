@@ -2,17 +2,23 @@
 set -euo pipefail
 
 # =============================================================================
+# 設定
+# =============================================================================
+DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# =============================================================================
 # メイン
 # =============================================================================
-targets=(
-	"${HOME}/.zshrc"
-	"${HOME}/.config/starship.toml"
-	"${HOME}/.claude/settings.json"
-)
+while IFS=: read -r src dst; do
+	# コメント行と空行をスキップ
+	[[ "$src" =~ ^# ]] && continue
+	[[ -z "$src" ]] && continue
 
-for target in "${targets[@]}"; do
-	if [[ -L "$target" ]]; then
-		rm -f "$target"
-		echo "Deleted symlink: $target"
+	# 変数を展開
+	dst=$(eval echo "$dst")
+
+	if [[ -L "$dst" ]]; then
+		rm -f "$dst"
+		echo "Deleted symlink: $dst"
 	fi
-done
+done < "${DOTFILES_DIR}/symlinks.conf"

@@ -41,16 +41,18 @@ ensure_dir() {
 # メイン
 # =============================================================================
 ensure_dir "$BACKUP_DIR"
-ensure_dir "$CONFIG_DIR"
-ensure_dir "$HOME/.claude"
 
-typeset -A files
-files=(
-	"${DOTFILES_DIR}/.config/zsh/.zshrc" "${HOME}/.zshrc"
-	"${DOTFILES_DIR}/.config/starship/starship.toml" "${HOME}/.config/starship.toml"
-	"${DOTFILES_DIR}/.config/claude/settings.json" "${HOME}/.claude/settings.json"
-)
+while IFS=: read -r src dst; do
+	# コメント行と空行をスキップ
+	[[ "$src" =~ ^# ]] && continue
+	[[ -z "$src" ]] && continue
 
-for src dst in "${(@kv)files}"; do
+	# 変数を展開
+	src="${DOTFILES_DIR}/${src}"
+	dst=$(eval echo "$dst")
+
+	# リンク先のディレクトリを確保
+	ensure_dir "$(dirname "$dst")"
+
 	link_file "$src" "$dst"
-done
+done < "${DOTFILES_DIR}/symlinks.conf"
