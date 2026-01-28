@@ -7,3 +7,4 @@
 - starship
     - JetBrainsMono
 - Claude Code
+- WezTerm
