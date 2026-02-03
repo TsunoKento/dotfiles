@@ -8,3 +8,4 @@
     - JetBrainsMono
 - Claude Code
 - WezTerm
+- Neovim
