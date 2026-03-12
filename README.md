@@ -11,3 +11,4 @@
 - Neovim
 - gh
 - go
+- glow
