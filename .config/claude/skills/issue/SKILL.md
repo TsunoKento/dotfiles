@@ -28,11 +28,26 @@ The slug is derived from the issue title: lowercase, spaces and special characte
 When the user invokes `/issue`:
 
 1. Check the current branch — confirm with the user if it doesn't look like an appropriate base (e.g., already on a feature branch)
-2. If `$ARGUMENTS` is provided, use it as the issue title. Otherwise, ask the user for:
-   - **Title** (required)
-   - **Body** (optional)
-   - **Labels** (optional, comma-separated)
-3. Run `gh issue create` with the collected information. If body or labels were not provided, omit those flags.
+2. Collect issue details:
+   - If `$ARGUMENTS` is provided, use it as the issue title. Otherwise ask for the title.
+   - Based on the title (and any context from `$ARGUMENTS`), draft the full issue body using this template:
+     ```
+     ## 背景
+
+     {inferred background / problem statement}
+
+     ## 達成基準
+
+     {inferred acceptance criteria, formatted as a markdown checklist}
+
+     ## 注釈
+
+     {inferred notes, or omit this section if nothing relevant}
+     ```
+   - Show the drafted body to the user and ask: "Does this look good, or would you like to change anything?"
+   - Iterate based on feedback until the user is satisfied.
+   - Ask for labels (optional, comma-separated).
+3. Run `gh issue create` with the collected information. If labels were not provided, omit that flag.
 4. Parse the issue number from the URL in the output (e.g., `https://github.com/owner/repo/issues/42` → `42`)
 5. Generate a branch slug from the title:
    - Lowercase the title
@@ -64,4 +79,4 @@ Creates issue "add dark mode support", then checks out `issue-7-add-dark-mode`.
 ```
 /issue
 ```
-Prompts for title, optional body, and optional labels before proceeding.
+Prompts for title, drafts the body, then asks the user to confirm or refine before creating the issue.
