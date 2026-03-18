@@ -39,11 +39,13 @@ return {
     { key = 'w', mods = 'SUPER', action = act.CloseCurrentTab{ confirm = true } },
     { key = 'phys:Space', mods = 'SHIFT', action = act.QuickSelect },
 
-    -- Pane作成 leader + r or d
-    { key = "d", mods = "LEADER", action = act.SplitVertical({ domain = "CurrentPaneDomain" }) },
-    { key = "r", mods = "LEADER", action = act.SplitHorizontal({ domain = "CurrentPaneDomain" }) },
+    -- Pane作成 leader + wasd (上下左右)
+    { key = "w", mods = "LEADER", action = act.SplitPane({ direction = "Up" }) },
+    { key = "a", mods = "LEADER", action = act.SplitPane({ direction = "Left" }) },
+    { key = "s", mods = "LEADER", action = act.SplitPane({ direction = "Down" }) },
+    { key = "d", mods = "LEADER", action = act.SplitPane({ direction = "Right" }) },
     -- Paneを閉じる leader + x
-    { key = "w", mods = "LEADER", action = act({ CloseCurrentPane = { confirm = true } }) },
+    { key = "x", mods = "LEADER", action = act({ CloseCurrentPane = { confirm = true } }) },
     -- Pane移動 leader + hlkj
     { key = "h", mods = "LEADER", action = act.ActivatePaneDirection("Left") },
     { key = "l", mods = "LEADER", action = act.ActivatePaneDirection("Right") },
