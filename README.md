@@ -12,3 +12,4 @@
 - gh
 - go
 - glow
+- terminal-notifier
