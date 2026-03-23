@@ -58,6 +58,12 @@ When the user invokes `/issue`:
 6. Run `git checkout -b issue-{number}-{slug}`
 7. Confirm success by running `git branch --show-current`
 8. Report the issue URL and the new branch name to the user
+9. Proceed to implement the issue:
+   - Use the issue title and the 達成基準 checklist as the implementation guide
+   - Explore the codebase as needed to understand the context
+   - Implement each checklist item in turn, marking them off as you go
+10. Invoke /simplify to review the changed code and apply any fixes found
+11. Invoke /commit to create a commit for the completed work
 
 ## Arguments
 
