@@ -63,7 +63,13 @@ When the user invokes `/issue`:
    - Explore the codebase as needed to understand the context
    - Implement each checklist item in turn, marking them off as you go
 10. Invoke /simplify to review the changed code and apply any fixes found
-11. Invoke /commit to create a commit for the completed work
+11. Verify 達成基準 before committing:
+    - Re-read each checklist item in 達成基準 from the issue body
+    - For each item, confirm it is satisfied by reviewing the implemented code
+    - If any item is not yet satisfied, continue implementation until it is
+    - For each verified item, update the GitHub issue body to check off that checkbox using `gh issue edit {number} --body "..."`
+    - Show a summary of verified items to the user before proceeding
+12. Invoke /commit to create a commit for the completed work
 
 ## Arguments
 
