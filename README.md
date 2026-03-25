@@ -13,3 +13,5 @@
 - go
 - glow
 - terminal-notifier
+- npm
+- codex
