@@ -54,6 +54,7 @@ When the user invokes `/commit`:
 1. Run `git status` and `git diff --staged` to see staged changes
 2. If no changes are staged, run `git diff` to see unstaged changes and ask if the user wants to stage them
 3. Analyze the changes and determine the appropriate type and scope
+   - If the changes span multiple unrelated concerns, suggest splitting them into separate commits before proceeding
 4. Generate a commit message following the Conventional Commits format
 5. If `$ARGUMENTS` is provided, use it as guidance for the commit message
 6. Show the proposed commit message to the user and ask for confirmation
