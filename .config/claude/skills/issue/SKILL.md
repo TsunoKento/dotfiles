@@ -55,20 +55,33 @@ When the user invokes `/issue`:
    - Collapse consecutive hyphens into one
    - Trim leading/trailing hyphens
    - Keep ~4 meaningful words (drop common stop words like "in", "the", "a", "an", "for", "of", "to" if needed to stay concise)
-6. Run `git checkout -b issue-{number}-{slug}`
-7. Confirm success by running `git branch --show-current`
-8. Report the issue URL and the new branch name to the user
+6. Create a worktree for the new branch:
+   ```bash
+   REPO_NAME=$(basename "$(git rev-parse --show-toplevel)")
+   git worktree add "../${REPO_NAME}-issue-{number}" -b issue-{number}-{slug}
+   ```
+   Then run project-specific post-setup inside the worktree if applicable:
+   ```bash
+   # Only if CLAUDE.md documents an APP_PORT convention
+   if grep -q "APP_PORT" CLAUDE.md 2>/dev/null; then
+     echo "APP_PORT=80{NN}" > "../${REPO_NAME}-issue-{number}/.env"
+   fi
+   ```
+   Port is derived from the convention in CLAUDE.md: `APP_PORT = 8000 + issue number`
+   All subsequent steps (Codex, simplify, verify) must run inside the worktree directory.
+7. Confirm success by running `git worktree list`
+8. Report the issue URL, the new branch name, and the worktree path to the user. If `.env` was created, also report the APP_PORT.
 9. Delegate implementation to Codex CLI:
    *(This skill assumes `codex` CLI is already installed and available in `PATH`.)*
-   - Fetch the issue as JSON and extract variables:
+   - Fetch the issue title and body separately using `--jq` to avoid jq parse errors from special characters:
      ```bash
-     ISSUE_JSON=$(gh issue view {number} --json title,body)
-     ISSUE_TITLE=$(echo "$ISSUE_JSON" | jq -r '.title')
-     ISSUE_BODY=$(echo "$ISSUE_JSON" | jq -r '.body')
+     ISSUE_TITLE=$(gh issue view {number} --json title --jq '.title')
+     ISSUE_BODY=$(gh issue view {number} --json body --jq '.body')
      ```
    - Extract the 達成基準 section into `$CRITERIA` — take everything between the `## 達成基準` heading and the next `##` heading (or end of string):
      ```bash
      CRITERIA=$(echo "$ISSUE_BODY" | awk '/^## 達成基準/{found=1; next} found && /^## /{exit} found{print}')
+     OUT_OF_SCOPE=$(echo "$ISSUE_BODY" | awk '/^## 注釈/{found=1; next} found && /^## /{exit} found{print}')
      ```
    - Look for a project conventions file by checking `AGENTS.md`, `CODEX.md`, and `CLAUDE.md` in that order. Read the first one found into `$CONVENTIONS`; if none exist, leave it empty:
      ```bash
@@ -81,18 +94,21 @@ When the user invokes `/issue`:
      ```bash
      PROMPT=$(printf 'Implement this GitHub issue. Do not run git commands or create commits.\n\nIssue: %s\n\n## 達成基準\n\n%s\n' "$ISSUE_TITLE" "$CRITERIA")
      if [ -n "$CONVENTIONS" ]; then
-       PROMPT=$(printf '%s\n\n## Project Conventions\n\n%s\n\n## Instructions\n- Implement every checklist item in 達成基準\n- Follow the project conventions above\n- Explore the codebase to understand context\n- Only modify files needed to satisfy the criteria\n- Do not commit\n' "$PROMPT" "$CONVENTIONS")
+       PROMPT=$(printf '%s\n\n## Project Conventions\n\n%s\n\n## Instructions\n- Implement every checklist item in 達成基準\n- Follow the project conventions above\n- Explore the codebase to understand context\n- Only modify files needed to satisfy the criteria\n- Do NOT implement anything beyond the 達成基準 checklist items above\n- Do NOT add endpoints, business logic, or features not explicitly listed\n- Do not commit\n' "$PROMPT" "$CONVENTIONS")
      else
-       PROMPT=$(printf '%s\n\n## Instructions\n- Implement every checklist item in 達成基準\n- Explore the codebase to understand context\n- Only modify files needed to satisfy the criteria\n- Do not commit\n' "$PROMPT")
+       PROMPT=$(printf '%s\n\n## Instructions\n- Implement every checklist item in 達成基準\n- Explore the codebase to understand context\n- Only modify files needed to satisfy the criteria\n- Do NOT implement anything beyond the 達成基準 checklist items above\n- Do NOT add endpoints, business logic, or features not explicitly listed\n- Do not commit\n' "$PROMPT")
+     fi
+     if [ -n "$OUT_OF_SCOPE" ]; then
+       PROMPT=$(printf '%s\n\n## スコープ外（実装しないこと）\n\n%s\n' "$PROMPT" "$OUT_OF_SCOPE")
      fi
      ```
-   - Invoke codex, preferring `--approval-mode auto-edit` (files auto-approved, shell commands still prompt). If that flag is unsupported by the installed version — indicated by an "unknown flag", "unknown option", or similar usage error on stderr — retry using the non-interactive flag appropriate for that version (e.g. `-q`). For any other non-zero exit, stop and report the error without retrying:
+   - Write the prompt to a temp file and invoke `codex exec --sandbox workspace-write`. If codex fails for any reason, stop and report the error:
      ```bash
-     OUTPUT=$(printf '%s' "$PROMPT" | codex --approval-mode auto-edit - 2>&1)
+     PROMPT_FILE="/tmp/codex_prompt_issue_{number}.txt"
+     printf '%s' "$PROMPT" > "$PROMPT_FILE"
+     OUTPUT=$(codex exec --sandbox workspace-write - < "$PROMPT_FILE" 2>&1)
      EXIT=$?
-     if [ $EXIT -ne 0 ] && echo "$OUTPUT" | grep -qiE 'unknown (flag|option)|unrecognized option'; then
-       printf '%s' "$PROMPT" | codex -q -  # -q is one example; check `codex --help` for your version
-     elif [ $EXIT -ne 0 ]; then
+     if [ $EXIT -ne 0 ]; then
        echo "$OUTPUT"; exit $EXIT
      fi
      ```
@@ -101,10 +117,14 @@ When the user invokes `/issue`:
 11. Verify 達成基準 before committing:
     - Re-read each checklist item in 達成基準 from the issue body
     - For each item, confirm it is satisfied by reviewing the implemented code
-    - If any item is not yet satisfied, continue implementation until it is
+    - If any item is not yet satisfied, re-run Codex with a focused prompt describing only the missing item. Do NOT implement it yourself.
     - For each verified item, update the GitHub issue body to check off that checkbox using `gh issue edit {number} --body "..."`
     - Show a summary of verified items to the user before proceeding
-12. Invoke /commit to create a commit for the completed work
+12. Show a summary of all changes for the user to review before committing:
+    - Run `git diff --stat HEAD` to show which files were changed
+    - Run `git diff HEAD` to show the full diff
+    - Inform the user: "Implementation complete. Please review the changes above and run /commit when ready."
+    - Do NOT invoke /commit automatically
 
 ## Arguments
 
@@ -115,6 +135,11 @@ When the user invokes `/issue`:
 - If `gh` is not authenticated, show the error clearly and suggest running `gh auth login`
 - If no git remote exists, inform the user that a remote is required for `gh issue create`
 - If branch creation fails (e.g., branch already exists), report the error and suggest a corrected branch name
+- If Codex fails for any reason (sandbox permission, flag error, etc.):
+  1. Diagnose the root cause from the error output
+  2. Fix the root cause (e.g., correct the flag, fix the prompt file)
+  3. Re-run Codex with the corrected command
+  4. Do NOT implement the code yourself — implementation is Codex's responsibility
 
 ## Examples
 
