@@ -58,10 +58,45 @@ When the user invokes `/issue`:
 6. Run `git checkout -b issue-{number}-{slug}`
 7. Confirm success by running `git branch --show-current`
 8. Report the issue URL and the new branch name to the user
-9. Proceed to implement the issue:
-   - Use the issue title and the 達成基準 checklist as the implementation guide
-   - Explore the codebase as needed to understand the context
-   - Implement each checklist item in turn, marking them off as you go
+9. Delegate implementation to Codex CLI:
+   *(This skill assumes `codex` CLI is already installed and available in `PATH`.)*
+   - Fetch the issue as JSON and extract variables:
+     ```bash
+     ISSUE_JSON=$(gh issue view {number} --json title,body)
+     ISSUE_TITLE=$(echo "$ISSUE_JSON" | jq -r '.title')
+     ISSUE_BODY=$(echo "$ISSUE_JSON" | jq -r '.body')
+     ```
+   - Extract the 達成基準 section into `$CRITERIA` — take everything between the `## 達成基準` heading and the next `##` heading (or end of string):
+     ```bash
+     CRITERIA=$(echo "$ISSUE_BODY" | awk '/^## 達成基準/{found=1; next} found && /^## /{exit} found{print}')
+     ```
+   - Look for a project conventions file by checking `AGENTS.md`, `CODEX.md`, and `CLAUDE.md` in that order. Read the first one found into `$CONVENTIONS`; if none exist, leave it empty:
+     ```bash
+     CONVENTIONS=""
+     for f in AGENTS.md CODEX.md CLAUDE.md; do
+       if [ -f "$f" ]; then CONVENTIONS=$(cat "$f"); break; fi
+     done
+     ```
+   - Build the prompt. If `$CONVENTIONS` is non-empty, include a `## Project Conventions` section and a "Follow the project conventions above" instruction; otherwise omit both:
+     ```bash
+     PROMPT=$(printf 'Implement this GitHub issue. Do not run git commands or create commits.\n\nIssue: %s\n\n## 達成基準\n\n%s\n' "$ISSUE_TITLE" "$CRITERIA")
+     if [ -n "$CONVENTIONS" ]; then
+       PROMPT=$(printf '%s\n\n## Project Conventions\n\n%s\n\n## Instructions\n- Implement every checklist item in 達成基準\n- Follow the project conventions above\n- Explore the codebase to understand context\n- Only modify files needed to satisfy the criteria\n- Do not commit\n' "$PROMPT" "$CONVENTIONS")
+     else
+       PROMPT=$(printf '%s\n\n## Instructions\n- Implement every checklist item in 達成基準\n- Explore the codebase to understand context\n- Only modify files needed to satisfy the criteria\n- Do not commit\n' "$PROMPT")
+     fi
+     ```
+   - Invoke codex, preferring `--approval-mode auto-edit` (files auto-approved, shell commands still prompt). If that flag is unsupported by the installed version — indicated by an "unknown flag", "unknown option", or similar usage error on stderr — retry using the non-interactive flag appropriate for that version (e.g. `-q`). For any other non-zero exit, stop and report the error without retrying:
+     ```bash
+     OUTPUT=$(printf '%s' "$PROMPT" | codex --approval-mode auto-edit - 2>&1)
+     EXIT=$?
+     if [ $EXIT -ne 0 ] && echo "$OUTPUT" | grep -qiE 'unknown (flag|option)|unrecognized option'; then
+       printf '%s' "$PROMPT" | codex -q -  # -q is one example; check `codex --help` for your version
+     elif [ $EXIT -ne 0 ]; then
+       echo "$OUTPUT"; exit $EXIT
+     fi
+     ```
+   - After success, inform the user: "Codex finished implementing. Proceeding to simplify and verify."
 10. Invoke /simplify to review the changed code and apply any fixes found
 11. Verify 達成基準 before committing:
     - Re-read each checklist item in 達成基準 from the issue body
