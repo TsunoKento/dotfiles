@@ -113,7 +113,7 @@ When the user invokes `/issue`:
      fi
      ```
    - After success, inform the user: "Codex finished implementing. Proceeding to simplify and verify."
-10. Invoke /simplify to review the changed code and apply any fixes found
+10. Invoke /simplify to review the changed code. For each fix identified by /simplify, delegate the fix to Codex via a focused `codex exec` prompt — do NOT apply fixes directly yourself.
 11. Verify 達成基準 before committing:
     - Re-read each checklist item in 達成基準 from the issue body
     - For each item, confirm it is satisfied by reviewing the implemented code
