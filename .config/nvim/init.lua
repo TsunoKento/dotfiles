@@ -82,3 +82,27 @@ end, { desc = 'Print the git blame for the current line' })
 -- For example, to add the "nohlsearch" package to automatically turn off search highlighting after
 -- 'updatetime' and when going to insert mode
 vim.cmd('packadd! nohlsearch')
+
+-- [[ LSP: Go ]]
+vim.lsp.config('gopls', {
+  cmd = { 'gopls' },
+  filetypes = { 'go', 'gomod', 'gowork', 'gotmpl' },
+  root_markers = { 'go.work', 'go.mod', '.git' },
+})
+vim.lsp.enable('gopls')
+
+vim.api.nvim_create_autocmd('LspAttach', {
+  desc = 'LSP keymaps',
+  callback = function(event)
+    local map = function(keys, func, desc)
+      vim.keymap.set('n', keys, func, { buffer = event.buf, desc = 'LSP: ' .. desc })
+    end
+    map('gd', vim.lsp.buf.definition,          'Go to Definition')
+    map('gD', vim.lsp.buf.declaration,         'Go to Declaration')
+    map('gr', vim.lsp.buf.references,          'Go to References')
+    map('gi', vim.lsp.buf.implementation,      'Go to Implementation')
+    map('K',  vim.lsp.buf.hover,               'Hover Documentation')
+    map('<leader>rn', vim.lsp.buf.rename,      'Rename')
+    map('<leader>ca', vim.lsp.buf.code_action, 'Code Action')
+  end,
+})
