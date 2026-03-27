@@ -75,6 +75,40 @@ vim.api.nvim_create_user_command('GitBlameLine', function()
   print(vim.fn.system({ 'git', 'blame', '-L', line_number .. ',+1', filename }))
 end, { desc = 'Print the git blame for the current line' })
 
+-- [[ Plugin manager: lazy.nvim ]]
+-- Bootstrap lazy.nvim (auto-install if not present)
+local lazypath = vim.fn.stdpath('data') .. '/lazy/lazy.nvim'
+if not vim.uv.fs_stat(lazypath) then
+  vim.fn.system({
+    'git', 'clone', '--filter=blob:none', '--branch=stable',
+    'https://github.com/folke/lazy.nvim.git', lazypath,
+  })
+end
+vim.opt.rtp:prepend(lazypath)
+
+require('lazy').setup({
+  -- Fuzzy finder (like VSCode Ctrl+P)
+  {
+    'nvim-telescope/telescope.nvim',
+    tag = '0.1.8',
+    dependencies = { 'nvim-lua/plenary.nvim' },
+    config = function()
+      local telescope = require('telescope')
+      local builtin = require('telescope.builtin')
+      telescope.setup({})
+
+      -- <C-p>: ファイル検索 (git管理ファイル優先、なければ全ファイル)
+      vim.keymap.set('n', '<C-p>', function()
+        local ok = pcall(builtin.git_files, { show_untracked = true })
+        if not ok then builtin.find_files() end
+      end, { desc = 'Find files' })
+
+      -- <leader>g: ファイル内容のgrep検索
+      vim.keymap.set('n', '<leader>g', builtin.live_grep, { desc = 'Live grep' })
+    end,
+  },
+})
+
 -- [[ Add optional packages ]]
 -- Nvim comes bundled with a set of packages that are not enabled by
 -- default. You can enable any of them by using the `:packadd` command.

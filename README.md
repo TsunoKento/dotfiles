@@ -9,6 +9,8 @@
 - Claude Code
 - WezTerm
 - Neovim
+    - ripgrep
+        - Telescopeのlive_grep（ファイル内容のgrep検索）に必要
 - gh
 - go
 - glow
