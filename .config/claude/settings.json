@@ -19,5 +19,8 @@
     "gopls-lsp@claude-plugins-official": true
   },
   "language": "Japanese",
-  "voiceEnabled": true
+  "voiceEnabled": true,
+  "permissions": {
+    "defaultMode": "plan"
+  }
 }
