@@ -1,0 +1,65 @@
+{
+  "skill_name": "issue",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "/issue add dark mode support to the settings page",
+      "expected_output": "Claude should: (1) confirm the current branch is appropriate, (2) draft an issue body with ## 背景 / ## 達成基準 / ## 注釈 sections in Japanese, (3) show the draft and ask for confirmation, (4) after confirmation create the issue via `gh issue create`, (5) create a worktree with branch name like `issue-N-add-dark-mode`, (6) report the issue URL and branch/worktree path.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Issue body draft contains all three Japanese sections: ## 背景, ## 達成基準, ## 注釈",
+          "type": "qualitative"
+        },
+        {
+          "text": "Claude asks the user to confirm or refine the draft before creating the issue",
+          "type": "qualitative"
+        },
+        {
+          "text": "Branch name follows the issue-{N}-{slug} pattern",
+          "type": "qualitative"
+        },
+        {
+          "text": "Claude references `scripts/build_codex_prompt.sh` when delegating to Codex",
+          "type": "qualitative"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "/issue",
+      "expected_output": "When called without arguments, Claude should ask for the issue title first, then proceed to draft the body. The interaction should be conversational and not skip the confirmation step.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Claude asks for the issue title when no $ARGUMENTS are provided",
+          "type": "qualitative"
+        },
+        {
+          "text": "Claude drafts the issue body and shows it to the user before creating the issue",
+          "type": "qualitative"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "新しいissueを作りたい。ログイン時にパスワードリセットが機能しないバグを修正したい。",
+      "expected_output": "Even without the explicit /issue prefix, Claude should recognize this as an issue creation request and follow the skill workflow. The issue body should correctly identify this as a bug fix with appropriate 達成基準.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Claude recognizes this as a request to create a GitHub issue",
+          "type": "qualitative"
+        },
+        {
+          "text": "Issue body draft correctly frames this as a bug fix in the 背景 section",
+          "type": "qualitative"
+        },
+        {
+          "text": "達成基準 includes specific, testable acceptance criteria for the password reset fix",
+          "type": "qualitative"
+        }
+      ]
+    }
+  ]
+}
