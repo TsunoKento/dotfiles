@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "/issue add dark mode support to the settings page",
-      "expected_output": "Claude should: (1) confirm the current branch is appropriate, (2) draft an issue body with ## 背景 / ## 達成基準 / ## 注釈 sections in Japanese, (3) show the draft and ask for confirmation, (4) after confirmation create the issue via `gh issue create`, (5) create a worktree with branch name like `issue-N-add-dark-mode`, (6) report the issue URL and branch/worktree path.",
+      "expected_output": "Claude should: (1) confirm the current branch is appropriate, (2) draft an issue body with ## 背景 / ## 達成基準 / ## 注釈 sections in Japanese, (3) show the draft and ask for confirmation, (4) after confirmation create the issue via `gh issue create`, (5) create a worktree with branch name like `issue-N-add-dark-mode`, (6) report the issue URL and branch/worktree path, (7) suggest running `/implement N` next.",
       "files": [],
       "assertions": [
         {
@@ -20,7 +20,7 @@
           "type": "qualitative"
         },
         {
-          "text": "Claude references `scripts/build_codex_prompt.sh` when delegating to Codex",
+          "text": "Claude suggests running /implement after reporting the issue URL and worktree path",
           "type": "qualitative"
         }
       ]
