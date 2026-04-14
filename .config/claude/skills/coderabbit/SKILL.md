@@ -13,6 +13,8 @@ allowed-tools: Bash(gh:*) Bash(git:*) Bash(jq:*)
 
 Fetch, summarize, and classify CodeRabbit PR review comments, then apply necessary fixes.
 
+> **IMPORTANT: Each fix MUST be committed individually using `/commit` BEFORE moving to the next fix. Do NOT batch multiple fixes into a single commit.**
+
 ---
 
 ## Instructions
@@ -90,8 +92,7 @@ For each selected item:
 3. If the suggestion is ambiguous, determine the best fix from code context
 4. After fixing, briefly report what was changed
 
-Commit each fix individually using `/commit`. Do NOT batch all fixes into a
-single commit. Include the comment number and summary in each commit message.
+> **IMPORTANT: Commit each fix individually using `/commit` BEFORE moving to the next fix. Do NOT batch all fixes into a single commit.** Include the comment number and summary in each commit message.
 
 After all fixes are complete, report in this format:
 
