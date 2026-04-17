@@ -18,7 +18,6 @@ Implement a GitHub Issue one behavior at a time using strict TDD.
 
 - Only one behavior per cycle
 - Write a failing test first — do NOT write any implementation yet
-- Do NOT write implementation until the user explicitly says to proceed
 - After adding a test, run it and confirm it fails (Red)
 - Write only the minimum implementation to make the test pass (Green)
 - Do NOT anticipate or implement the next requirement
@@ -81,13 +80,12 @@ Run the test and confirm it fails:
 {project's test command}
 ```
 
-Show the failure output and **stop**. Wait for the user to say to proceed before
-writing any implementation.
+Show the failure output.
 
 #### Green — Write minimal implementation
 
-After the user gives the go-ahead, write the **minimum** code to make the
-failing test pass. Do NOT implement anything beyond what the test requires.
+Write the **minimum** code to make the failing test pass. Do NOT implement
+anything beyond what the test requires.
 
 Run the test again and confirm it passes:
 
