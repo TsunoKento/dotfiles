@@ -95,9 +95,31 @@ Run the test again and confirm it passes:
 
 Show the result.
 
-#### Next behavior
+#### Pause — Wait for user review
 
-Tell the user which behavior is next and go back to **Red**.
+After Green passes, **stop and wait for explicit user approval** before
+starting the next behavior. Do NOT proceed automatically.
+
+Show a brief summary so the user can review the cycle:
+
+```
+✅ サイクル {N} 完了: {behavior}
+
+変更ファイル:
+- {test file path}
+- {implementation file path}
+
+テスト結果: {pass count} passed
+
+次の振る舞い: {next behavior}
+
+このまま次のサイクルに進んでよいか確認してください。修正・質問があればどうぞ。
+```
+
+Then wait. Only continue to the next **Red** when the user explicitly
+approves (e.g. "OK", "進めて", "次へ"). If the user asks questions or
+requests changes, address them first and re-show the pause prompt before
+continuing.
 
 ### 5. Completion
 
