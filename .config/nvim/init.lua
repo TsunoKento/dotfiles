@@ -38,6 +38,9 @@ vim.o.list = true
 -- instead raise a dialog asking if you wish to save the current file(s) See `:help 'confirm'`
 vim.o.confirm = true
 
+-- Completion popup behavior (used by built-in LSP completion). See `:h 'completeopt'`
+vim.o.completeopt = 'menuone,noselect,popup'
+
 -- Time in ms before `CursorHold` fires. The default (4000) is too slow for the diagnostic float
 -- below. See `:h 'updatetime'`
 vim.o.updatetime = 300
@@ -155,6 +158,17 @@ vim.lsp.config('gopls', {
 })
 vim.lsp.enable('gopls')
 
+-- [[ LSP: TypeScript / JavaScript ]]
+vim.lsp.config('ts_ls', {
+  cmd = { 'typescript-language-server', '--stdio' },
+  filetypes = {
+    'javascript', 'javascriptreact', 'javascript.jsx',
+    'typescript', 'typescriptreact', 'typescript.tsx',
+  },
+  root_markers = { 'tsconfig.json', 'jsconfig.json', 'package.json', '.git' },
+})
+vim.lsp.enable('ts_ls')
+
 vim.api.nvim_create_autocmd('LspAttach', {
   desc = 'LSP keymaps',
   callback = function(event)
@@ -168,5 +182,13 @@ vim.api.nvim_create_autocmd('LspAttach', {
     map('K',  vim.lsp.buf.hover,               'Hover Documentation')
     map('<leader>rn', vim.lsp.buf.rename,      'Rename')
     map('<leader>ca', vim.lsp.buf.code_action, 'Code Action')
+
+    -- Enable built-in LSP completion (Neovim 0.11+)
+    local client = vim.lsp.get_client_by_id(event.data.client_id)
+    if client and client:supports_method('textDocument/completion') then
+      vim.lsp.completion.enable(true, client.id, event.buf, { autotrigger = true })
+      vim.keymap.set('i', '<C-Space>', vim.lsp.completion.get,
+        { buffer = event.buf, desc = 'LSP: Trigger completion' })
+    end
   end,
 })
