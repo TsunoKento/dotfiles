@@ -45,6 +45,9 @@ vim.o.completeopt = 'menuone,noselect,popup'
 -- below. See `:h 'updatetime'`
 vim.o.updatetime = 300
 
+-- Enable 24-bit RGB color. Required by bufferline / neo-tree. See `:h 'termguicolors'`
+vim.o.termguicolors = true
+
 -- [[ Set up keymaps ]] See `:h vim.keymap.set()`, `:h mapping`, `:h keycodes`
 
 -- Use <Esc> to exit terminal mode
@@ -59,6 +62,12 @@ vim.keymap.set({ 'n' }, '<A-h>', '<C-w>h')
 vim.keymap.set({ 'n' }, '<A-j>', '<C-w>j')
 vim.keymap.set({ 'n' }, '<A-k>', '<C-w>k')
 vim.keymap.set({ 'n' }, '<A-l>', '<C-w>l')
+
+-- バッファ (開いているファイル) 間の移動。閉じずに切り替えるのが nvim の流儀
+-- 直前のバッファとの往復は標準の <C-^> を使う
+vim.keymap.set('n', '<S-l>', '<cmd>BufferLineCycleNext<cr>', { desc = 'Next buffer' })
+vim.keymap.set('n', '<S-h>', '<cmd>BufferLineCyclePrev<cr>', { desc = 'Prev buffer' })
+vim.keymap.set('n', '<leader>x', '<cmd>bdelete<cr>', { desc = 'Close buffer' })
 
 -- [[ Basic Autocommands ]].
 -- See `:h lua-guide-autocommands`, `:h autocmd`, `:h nvim_create_autocmd()`
@@ -112,6 +121,77 @@ require('lazy').setup({
 
       -- <leader>g: ファイル内容のgrep検索
       vim.keymap.set('n', '<leader>g', builtin.live_grep, { desc = 'Live grep' })
+
+      -- <leader>b: 開いているバッファ一覧
+      vim.keymap.set('n', '<leader>b', builtin.buffers, { desc = 'Find buffers' })
+
+      -- <leader>o: 最近開いたファイル
+      vim.keymap.set('n', '<leader>o', builtin.oldfiles, { desc = 'Recent files' })
+
+      -- <leader>s: プロジェクト全体のシンボル検索 (LSP、VSCode の <C-t> 相当)
+      vim.keymap.set('n', '<leader>s', builtin.lsp_dynamic_workspace_symbols,
+        { desc = 'Workspace symbols' })
+    end,
+  },
+
+  -- アイコン (neo-tree / bufferline が依存)
+  { 'nvim-tree/nvim-web-devicons' },
+
+  -- ファイルツリー (VSCode の Explorer サイドバー相当)
+  {
+    'nvim-neo-tree/neo-tree.nvim',
+    branch = 'v3.x',
+    dependencies = {
+      'nvim-lua/plenary.nvim',
+      'nvim-tree/nvim-web-devicons',
+      'MunifTanjim/nui.nvim',
+    },
+    cmd = 'Neotree', -- `:Neotree` を直接叩いてもロードされるようにする
+    keys = {
+      { '<leader>e', '<cmd>Neotree toggle<cr>', desc = 'Toggle file tree' },
+      { '<leader>E', '<cmd>Neotree reveal<cr>', desc = 'Reveal current file in tree' },
+    },
+    config = function()
+      require('neo-tree').setup({
+        close_if_last_window = true, -- ツリーだけ残ったら nvim を閉じる
+        filesystem = {
+          follow_current_file = { enabled = true }, -- 開いているファイルをツリー側でも追従表示
+          hijack_netrw_behavior = 'open_default',   -- `nvim .` でツリーが開く
+          use_libuv_file_watcher = true,            -- 外部でのファイル変更を自動反映
+          filtered_items = {
+            hide_dotfiles = false, -- dotfiles リポジトリなので必ず表示する
+            hide_gitignored = true,
+          },
+        },
+        window = {
+          width = 32,
+          mappings = {
+            ['<space>'] = 'none', -- leader と衝突するため無効化
+          },
+        },
+      })
+    end,
+  },
+
+  -- バッファタブ (VSCode の上部タブ相当)
+  {
+    'akinsho/bufferline.nvim',
+    dependencies = { 'nvim-tree/nvim-web-devicons' },
+    config = function()
+      require('bufferline').setup({
+        options = {
+          diagnostics = 'nvim_lsp', -- タブにエラー/警告の件数を表示する
+          always_show_bufferline = true,
+          offsets = {
+            {
+              filetype = 'neo-tree',
+              text = 'Explorer',
+              highlight = 'Directory',
+              separator = true,
+            },
+          },
+        },
+      })
     end,
   },
 })
