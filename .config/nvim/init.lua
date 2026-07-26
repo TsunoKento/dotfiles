@@ -38,6 +38,10 @@ vim.o.list = true
 -- instead raise a dialog asking if you wish to save the current file(s) See `:help 'confirm'`
 vim.o.confirm = true
 
+-- Time in ms before `CursorHold` fires. The default (4000) is too slow for the diagnostic float
+-- below. See `:h 'updatetime'`
+vim.o.updatetime = 300
+
 -- [[ Set up keymaps ]] See `:h vim.keymap.set()`, `:h mapping`, `:h keycodes`
 
 -- Use <Esc> to exit terminal mode
@@ -116,6 +120,32 @@ require('lazy').setup({
 -- For example, to add the "nohlsearch" package to automatically turn off search highlighting after
 -- 'updatetime' and when going to insert mode
 vim.cmd('packadd! nohlsearch')
+
+-- [[ Diagnostics ]] See `:h vim.diagnostic.config()`
+vim.diagnostic.config({
+  underline = true,
+  severity_sort = true, -- 同じ位置に複数ある場合は重大度の高い順に表示
+  float = {
+    border = 'rounded',
+    source = true, -- どの LSP からの診断か表示する (gopls / ts_ls など)
+    header = '',
+    prefix = '',
+  },
+})
+
+-- カーソルを止めると、その位置の診断をフロートウィンドウで表示する (VSCode のホバー相当)
+vim.api.nvim_create_autocmd('CursorHold', {
+  desc = 'Show diagnostics in a floating window on cursor hold',
+  callback = function()
+    -- 既にフロートが開いている場合は何もしない (K のホバー等を潰さないため)
+    for _, winid in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+      if vim.api.nvim_win_get_config(winid).relative ~= '' then
+        return
+      end
+    end
+    vim.diagnostic.open_float(nil, { focus = false, scope = 'line' })
+  end,
+})
 
 -- [[ LSP: Go ]]
 vim.lsp.config('gopls', {
