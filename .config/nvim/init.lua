@@ -34,6 +34,15 @@ vim.o.scrolloff = 10
 -- Show <tab> and trailing spaces
 vim.o.list = true
 
+-- インデントはタブではなくスペースを使う。幅は 2。
+-- Go / Makefile はタブが必須だが、Neovim 標準の ftplugin
+-- ($VIMRUNTIME/ftplugin/go.vim, make.vim) が noexpandtab に戻すので設定不要。
+-- See `:h 'expandtab'`, `:h 'shiftwidth'`
+vim.o.expandtab = true
+vim.o.shiftwidth = 2  -- << >> や自動インデントの1段の幅
+vim.o.tabstop = 2     -- ファイル中のタブ文字を何桁で表示するか
+vim.o.softtabstop = 2 -- <Tab>/<BS> がスペース2つ分をまとめて扱う
+
 -- if performing an operation that would fail due to unsaved changes in the buffer (like `:q`),
 -- instead raise a dialog asking if you wish to save the current file(s) See `:help 'confirm'`
 vim.o.confirm = true
@@ -78,6 +87,16 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   desc = 'Highlight when yanking (copying) text',
   callback = function()
     vim.hl.on_yank()
+  end,
+})
+
+-- Go はタブインデント (gofmt) なので、タブの表示幅だけ読みやすい 4 にする。
+-- expandtab は標準の ftplugin/go.vim が noexpandtab にしてくれるので触らない。
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = { 'go', 'gomod', 'gowork', 'make' },
+  desc = 'Use a wider tab display for tab-indented filetypes',
+  callback = function()
+    vim.bo.tabstop = 4
   end,
 })
 
