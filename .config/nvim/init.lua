@@ -48,7 +48,11 @@ vim.o.softtabstop = 2 -- <Tab>/<BS> がスペース2つ分をまとめて扱う
 vim.o.confirm = true
 
 -- Completion popup behavior (used by built-in LSP completion). See `:h 'completeopt'`
-vim.o.completeopt = 'menuone,noselect,popup'
+-- fuzzy: 文字を飛ばしたマッチも拾い、スコア順に並べ替える (`myVa` → `myVariableName`)
+vim.o.completeopt = 'menuone,noselect,popup,fuzzy'
+
+-- 候補が多い JS では popup が画面を覆うので高さを制限する。See `:h 'pumheight'`
+vim.o.pumheight = 12
 
 -- Time in ms before `CursorHold` fires. The default (4000) is too slow for the diagnostic float
 -- below. See `:h 'updatetime'`
@@ -77,6 +81,16 @@ vim.keymap.set({ 'n' }, '<A-l>', '<C-w>l')
 vim.keymap.set('n', '<S-l>', '<cmd>BufferLineCycleNext<cr>', { desc = 'Next buffer' })
 vim.keymap.set('n', '<S-h>', '<cmd>BufferLineCyclePrev<cr>', { desc = 'Prev buffer' })
 vim.keymap.set('n', '<leader>x', '<cmd>bdelete<cr>', { desc = 'Close buffer' })
+
+-- 補完ポップアップが出ている時だけ <CR> を確定に使う (VSCode と同じ操作感)。
+-- noselect なので未選択のまま <C-y> を送ると改行を飲み込んでしまうため、
+-- 選択済みかどうかを complete_info() で分岐する。See `:h complete_info()`
+vim.keymap.set('i', '<CR>', function()
+  if vim.fn.pumvisible() == 0 then
+    return '<CR>'
+  end
+  return vim.fn.complete_info({ 'selected' }).selected ~= -1 and '<C-y>' or '<C-e><CR>'
+end, { expr = true, replace_keycodes = true, desc = 'Accept completion or newline' })
 
 -- [[ Basic Autocommands ]].
 -- See `:h lua-guide-autocommands`, `:h autocmd`, `:h nvim_create_autocmd()`
@@ -268,6 +282,11 @@ vim.lsp.config('ts_ls', {
 })
 vim.lsp.enable('ts_ls')
 
+-- triggerCharacters を拡張済みのクライアントを記録する。server_capabilities は
+-- クライアント単位で共有されるため、バッファごとに append すると同じ文字が重複登録され、
+-- 1打鍵で重複した数だけ completion リクエストが飛んでしまう。
+local completion_extended = {}
+
 vim.api.nvim_create_autocmd('LspAttach', {
   desc = 'LSP keymaps',
   callback = function(event)
@@ -285,6 +304,20 @@ vim.api.nvim_create_autocmd('LspAttach', {
     -- Enable built-in LSP completion (Neovim 0.11+)
     local client = vim.lsp.get_client_by_id(event.data.client_id)
     if client and client:supports_method('textDocument/completion') then
+      -- 組み込み autotrigger はサーバーが宣言した triggerCharacters でしか発火しない。
+      -- ts_ls は { . " ' / @ < } だけなので、変数名を打ち始めても候補が出ない。
+      -- 英数字と _ を足して全キー入力で発火させる。See `:h lsp-autocompletion`
+      local provider = client.server_capabilities.completionProvider
+      if provider and not completion_extended[client.id] then
+        completion_extended[client.id] = true
+        provider.triggerCharacters = provider.triggerCharacters or {}
+        local word_chars = 'abcdefghijklmnopqrstuvwxyz'
+          .. 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_'
+        for char in word_chars:gmatch('.') do
+          table.insert(provider.triggerCharacters, char)
+        end
+      end
+
       vim.lsp.completion.enable(true, client.id, event.buf, { autotrigger = true })
       vim.keymap.set('i', '<C-Space>', vim.lsp.completion.get,
         { buffer = event.buf, desc = 'LSP: Trigger completion' })
