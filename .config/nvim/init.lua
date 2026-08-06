@@ -49,7 +49,9 @@ vim.o.confirm = true
 
 -- Completion popup behavior (used by built-in LSP completion). See `:h 'completeopt'`
 -- fuzzy: 文字を飛ばしたマッチも拾い、スコア順に並べ替える (`myVa` → `myVariableName`)
-vim.o.completeopt = 'menuone,noselect,popup,fuzzy'
+-- popup は入れない。組み込みの info popup は初回レスポンスの documentation しか出せず
+-- (ts_ls は resolve するまで空)、下の自前 doc フロートと二重表示になるため。
+vim.o.completeopt = 'menuone,noselect,fuzzy'
 
 -- 候補が多い JS では popup が画面を覆うので高さを制限する。See `:h 'pumheight'`
 vim.o.pumheight = 12
@@ -324,3 +326,175 @@ vim.api.nvim_create_autocmd('LspAttach', {
     end
   end,
 })
+
+-- [[ 補完候補の Doc コメント (JSDoc など) をフロートで表示する ]]
+-- 組み込み補完は初回 completion レスポンスの documentation しか使わない
+-- ($VIMRUNTIME/lua/vim/lsp/completion.lua の `info = get_doc(item)`)。
+-- ts_ls は completionItem/resolve するまで documentation も detail も返さないため、
+-- 'completeopt' の popup では JS/TS で何も出ない。そこで CompleteChanged で
+-- 選択中の候補を捕まえ、必要なら resolve してから自前のフロートに描画する。
+-- gopls のように初回から documentation を返すサーバーは resolve せずそのまま描画する。
+local doc_win, doc_buf
+local doc_seq = 0 -- 選択が変わるたびに増やし、古い resolve レスポンスを捨てるための番号
+
+-- ウィンドウだけ閉じ、scratch バッファは使い回す。pum が出ている最中に
+-- ウィンドウとバッファを作り直すとハングするため、生成・破棄は最小限にする。
+local function close_doc()
+  if doc_win and vim.api.nvim_win_is_valid(doc_win) then
+    vim.api.nvim_win_close(doc_win, true)
+  end
+  doc_win = nil
+end
+
+-- pum の隣にフロートを描画する。pum は CompleteChanged 時点の座標。
+-- 既にフロートが開いていれば作り直さず、中身と位置だけ差し替える。
+local function show_doc(lines, pum)
+  if #lines == 0 or vim.fn.pumvisible() == 0 then
+    close_doc()
+    return
+  end
+
+  -- 基本は pum の右隣。幅が足りなければ左隣に回し、どちらも無理なら諦める。
+  local col = pum.col + pum.width + (pum.scrollbar and 1 or 0)
+  local width = math.min(64, vim.o.columns - col - 2)
+  if width < 30 then
+    width = math.min(64, pum.col - 2)
+    col = pum.col - width - 2
+  end
+  if width < 20 or col < 0 then
+    close_doc()
+    return
+  end
+
+  if not (doc_buf and vim.api.nvim_buf_is_valid(doc_buf)) then
+    doc_buf = vim.api.nvim_create_buf(false, true)
+    vim.bo[doc_buf].filetype = 'markdown'
+  end
+  vim.api.nvim_buf_set_lines(doc_buf, 0, -1, false, lines)
+
+  local config = {
+    relative = 'editor',
+    row = pum.row,
+    col = col,
+    width = width,
+    height = math.min(20, #lines),
+    zindex = 101, -- pum の zindex は 100 固定。See `:h nvim_open_win()`
+  }
+  if doc_win and vim.api.nvim_win_is_valid(doc_win) then
+    vim.api.nvim_win_set_config(doc_win, config)
+  else
+    config.style = 'minimal'
+    config.border = 'rounded'
+    config.focusable = false
+    config.noautocmd = true -- ウィンドウ生成の autocmd が pum を乱さないようにする
+    doc_win = vim.api.nvim_open_win(doc_buf, false, config)
+    vim.wo[doc_win].wrap = true
+  end
+  vim.api.nvim_win_set_cursor(doc_win, { 1, 0 }) -- 候補が変わったら先頭から読ませる
+end
+
+-- CompletionItem から表示用の markdown 行を組み立てる。
+-- detail (型シグネチャ) をコードブロックにして、その下に documentation を続ける。
+local function doc_lines(item, filetype)
+  local lines = {}
+  if item.detail and item.detail ~= '' then
+    table.insert(lines, '```' .. (filetype ~= '' and filetype or 'text'))
+    vim.list_extend(lines, vim.split(item.detail, '\n', { plain = true }))
+    table.insert(lines, '```')
+  end
+  if item.documentation then
+    if #lines > 0 then
+      table.insert(lines, '')
+    end
+    vim.lsp.util.convert_input_to_markdown_lines(item.documentation, lines)
+  end
+  return lines
+end
+
+vim.api.nvim_create_autocmd('CompleteChanged', {
+  desc = 'Show documentation for the selected completion item',
+  callback = function()
+    -- v:event はこの callback を抜けると無効になるので、非同期 resolve の前に控える
+    local event = vim.v.event
+    local pum = {
+      row = event.row,
+      col = event.col,
+      width = event.width,
+      scrollbar = event.scrollbar,
+    }
+    local filetype = vim.bo.filetype
+
+    doc_seq = doc_seq + 1
+    local seq = doc_seq
+
+    -- CompleteChanged の中で同期的にウィンドウを開くと pum の描画と競合してハングする
+    -- (gopls のように resolve 無しで描画できるサーバーで顕著)。描画は必ず
+    -- vim.schedule() に載せ、待っている間に選択が動いていたら捨てる。
+    local function render(target)
+      vim.schedule(function()
+        if seq ~= doc_seq then
+          return
+        end
+        if target then
+          show_doc(doc_lines(target, filetype), pum)
+        else
+          close_doc()
+        end
+      end)
+    end
+
+    -- <C-n> のキーワード補完など、LSP 由来でない候補には user_data が無い
+    local completed = event.completed_item or {}
+    local lsp_data = type(completed.user_data) == 'table'
+      and vim.tbl_get(completed.user_data, 'nvim', 'lsp')
+    local item = lsp_data and lsp_data.completion_item
+    local client = lsp_data and vim.lsp.get_client_by_id(lsp_data.client_id)
+    if not item or not client then
+      render(nil)
+      return
+    end
+
+    -- gopls などは初回レスポンスに documentation が入っているので resolve 不要
+    if item.documentation then
+      render(item)
+      return
+    end
+    -- ts_ls は resolve しないと documentation も detail も返さない
+    if not client:supports_method('completionItem/resolve') then
+      render(nil)
+      return
+    end
+    client:request('completionItem/resolve', item, function(err, resolved)
+      if err or not resolved then
+        return
+      end
+      render(resolved)
+    end)
+  end,
+})
+
+vim.api.nvim_create_autocmd({ 'CompleteDone', 'InsertLeave' }, {
+  desc = 'Close the completion documentation float',
+  callback = function()
+    doc_seq = doc_seq + 1 -- 予約済みの描画が後から開き直さないようにする
+    close_doc()
+  end,
+})
+
+-- Doc が長い時にインサートモードのまま読み進められるようにする。
+-- nvim_win_call や `normal!` は一時的にカレントウィンドウを切り替えるため、pum が
+-- 出ている最中に使うとハングする。カーソル位置を直接動かすとウィンドウ切り替えなしに
+-- スクロールできるので、そちらを使う。See `:h nvim_win_set_cursor()`
+local function scroll_doc(direction)
+  return function()
+    if not (doc_win and vim.api.nvim_win_is_valid(doc_win)) then
+      return
+    end
+    local last = vim.api.nvim_buf_line_count(doc_buf)
+    local step = math.max(1, vim.api.nvim_win_get_height(doc_win) - 1)
+    local line = vim.api.nvim_win_get_cursor(doc_win)[1] + direction * step
+    vim.api.nvim_win_set_cursor(doc_win, { math.min(last, math.max(1, line)), 0 })
+  end
+end
+vim.keymap.set('i', '<C-f>', scroll_doc(1), { desc = 'Scroll doc float down' })
+vim.keymap.set('i', '<C-b>', scroll_doc(-1), { desc = 'Scroll doc float up' })
