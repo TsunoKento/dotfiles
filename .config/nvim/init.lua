@@ -84,16 +84,6 @@ vim.keymap.set('n', '<S-l>', '<cmd>BufferLineCycleNext<cr>', { desc = 'Next buff
 vim.keymap.set('n', '<S-h>', '<cmd>BufferLineCyclePrev<cr>', { desc = 'Prev buffer' })
 vim.keymap.set('n', '<leader>x', '<cmd>bdelete<cr>', { desc = 'Close buffer' })
 
--- 補完ポップアップが出ている時だけ <CR> を確定に使う (VSCode と同じ操作感)。
--- noselect なので未選択のまま <C-y> を送ると改行を飲み込んでしまうため、
--- 選択済みかどうかを complete_info() で分岐する。See `:h complete_info()`
-vim.keymap.set('i', '<CR>', function()
-  if vim.fn.pumvisible() == 0 then
-    return '<CR>'
-  end
-  return vim.fn.complete_info({ 'selected' }).selected ~= -1 and '<C-y>' or '<C-e><CR>'
-end, { expr = true, replace_keycodes = true, desc = 'Accept completion or newline' })
-
 -- [[ Basic Autocommands ]].
 -- See `:h lua-guide-autocommands`, `:h autocmd`, `:h nvim_create_autocmd()`
 
@@ -227,6 +217,17 @@ require('lazy').setup({
           },
         },
       })
+    end,
+  },
+
+  -- 括弧・クオートの自動閉じ (VSCode 相当)
+  -- <CR> もこのプラグインが持つ。pum が出ていれば素の <CR> (= 標準の確定/改行、
+  -- `:h popupmenu-keys`)、出ていなければ {|} の中身を展開する。
+  {
+    'windwp/nvim-autopairs',
+    config = function()
+      -- 既定値のまま。check_ts は nvim-treesitter を入れていないので有効化できない。
+      require('nvim-autopairs').setup({})
     end,
   },
 })
