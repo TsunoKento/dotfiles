@@ -252,9 +252,10 @@ vim.diagnostic.config({
   },
 })
 
--- カーソルを止めると、その位置の診断をフロートウィンドウで表示する (VSCode のホバー相当)
+-- カーソルを止めると、その位置の情報をフロートウィンドウで表示する (VSCode のホバー相当)。
+-- 診断 (エラー/警告) を優先し、無ければ LSP のホバー (シグネチャ / doc コメント) を出す。
 vim.api.nvim_create_autocmd('CursorHold', {
-  desc = 'Show diagnostics in a floating window on cursor hold',
+  desc = 'Show diagnostics or LSP hover in a floating window on cursor hold',
   callback = function()
     -- 既にフロートが開いている場合は何もしない (K のホバー等を潰さないため)
     for _, winid in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
@@ -262,7 +263,23 @@ vim.api.nvim_create_autocmd('CursorHold', {
         return
       end
     end
-    vim.diagnostic.open_float(nil, { focus = false, scope = 'line' })
+
+    -- 診断が無ければ open_float は nil を返すので、そのままホバーに落とす。
+    -- See `:h vim.diagnostic.open_float()`
+    if vim.diagnostic.open_float(nil, { focus = false, scope = 'line' }) then
+      return
+    end
+
+    -- hover 未対応のサーバーしか付いていないバッファで vim.lsp.buf.hover() を呼ぶと
+    -- 「not supported by any of the servers」のエラー通知が毎回出る
+    -- ($VIMRUNTIME/lua/vim/lsp.lua の buf_request)。事前に対応クライアントを確認する。
+    if #vim.lsp.get_clients({ bufnr = 0, method = 'textDocument/hover' }) == 0 then
+      return
+    end
+
+    -- focus = false: フロートにカーソルを奪われないようにする
+    -- silent = true: シンボル以外で止めた時の "No information available" を抑える
+    vim.lsp.buf.hover({ focus = false, silent = true, border = 'rounded' })
   end,
 })
 
