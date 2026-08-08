@@ -60,10 +60,20 @@ vim.o.pumheight = 12
 -- below. See `:h 'updatetime'`
 vim.o.updatetime = 300
 
+-- キーマッピングの続きを待つ時間 (ms)。既定の 1000 だと insert で `j` を1つ打った時に
+-- 下の `jj` の続きを待って最大1秒表示が遅れる (打鍵自体は失われない)。
+-- <leader> (space) 始まりのマッピングもこの時間内に次のキーを打つ必要がある。
+-- See `:h 'timeoutlen'`
+vim.o.timeoutlen = 300
+
 -- Enable 24-bit RGB color. Required by bufferline / neo-tree. See `:h 'termguicolors'`
 vim.o.termguicolors = true
 
 -- [[ Set up keymaps ]] See `:h vim.keymap.set()`, `:h mapping`, `:h keycodes`
+
+-- インサートモードを jj で抜ける。<Esc> はホームポジションから遠い。
+-- 補完ポップアップが出ていても <Esc> はそのままノーマルモードに抜けるので分岐は不要。
+vim.keymap.set('i', 'jj', '<Esc>', { desc = 'Exit insert mode' })
 
 -- Use <Esc> to exit terminal mode
 vim.keymap.set('t', '<Esc>', '<C-\\><C-n>')
