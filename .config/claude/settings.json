@@ -4,7 +4,7 @@
     "pr": ""
   },
   "permissions": {
-    "defaultMode": "plan"
+    "defaultMode": "auto"
   },
   "model": "opus",
   "hooks": {
@@ -28,5 +28,6 @@
   },
   "language": "Japanese",
   "tui": "fullscreen",
+  "agentPushNotifEnabled": true,
   "voiceEnabled": true
 }
