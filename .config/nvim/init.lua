@@ -94,6 +94,17 @@ vim.keymap.set('n', '<S-l>', '<cmd>BufferLineCycleNext<cr>', { desc = 'Next buff
 vim.keymap.set('n', '<S-h>', '<cmd>BufferLineCyclePrev<cr>', { desc = 'Prev buffer' })
 vim.keymap.set('n', '<leader>x', '<cmd>bdelete<cr>', { desc = 'Close buffer' })
 
+-- 左 (h) / 右 (l) / 自分以外 (o) をまとめて閉じる。bufferline の一括クローズは
+-- `close_command` の既定値 `bdelete!` を使うため、未保存の変更は確認なしで破棄される。
+-- (単体で閉じる <leader>x は bang 無しなので 'confirm' のダイアログが出る)
+-- なお <leader>x はこれらの前置キーになったので、'timeoutlen' 分だけ待ってから実行される。
+vim.keymap.set('n', '<leader>xh', '<cmd>BufferLineCloseLeft<cr>',
+  { desc = 'Close buffers to the left' })
+vim.keymap.set('n', '<leader>xl', '<cmd>BufferLineCloseRight<cr>',
+  { desc = 'Close buffers to the right' })
+vim.keymap.set('n', '<leader>xo', '<cmd>BufferLineCloseOthers<cr>',
+  { desc = 'Close other buffers' })
+
 -- [[ Basic Autocommands ]].
 -- See `:h lua-guide-autocommands`, `:h autocmd`, `:h nvim_create_autocmd()`
 
