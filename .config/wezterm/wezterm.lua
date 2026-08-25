@@ -4,6 +4,12 @@ local config = wezterm.config_builder()
 config.automatically_reload_config = true
 
 -- フォント設定
+-- JetBrains Mono は CJK を含まないため、明示しないと macOS のフォールバックが
+-- Apple SD Gothic Neo (韓国語) を掴み、新字体・国字 (学/体/枠/込 等) が tofu になる
+config.font = wezterm.font_with_fallback({
+  "JetBrains Mono",
+  "Hiragino Sans",
+})
 config.font_size = 12.0
 
 -- 日本語IME設定
