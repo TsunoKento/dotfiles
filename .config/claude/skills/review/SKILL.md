@@ -1,8 +1,8 @@
 ---
 name: review
 description: >
-  Review implemented code for a GitHub Issue: run /simplify, get a Codex code review,
-  verify acceptance criteria, and show the diff. Run this after /implement has finished.
+  Review implemented code for a GitHub Issue: run /code-review and fix findings,
+  run /simplify, verify acceptance criteria, and show the diff. Run this after /implement has finished.
   Use when the user says "review issue N", "review the changes", "/review N", or similar.
   Must be run from inside the worktree directory for the issue.
 ---
@@ -20,22 +20,16 @@ Review implemented code, verify acceptance criteria, and prepare for commit.
 - If `$ARGUMENTS` is provided, use it as the issue number.
 - Otherwise, ask: "Which issue number should I review?"
 
-### 2. Run /simplify
+### 2. Run /code-review
 
-Invoke `/simplify` to review the changed code for quality and reuse issues, and
-apply any fixes found.
+Invoke `/code-review medium --fix` to review the current diff for correctness bugs and
+apply fixes for the findings. Report what was found and fixed before
+proceeding.
 
-### 3. Codex code review
+### 3. Run /simplify
 
-Run Codex to get an independent code review of the changes. Codex should report
-issues only — it does NOT make fixes.
-
-```bash
-codex exec --sandbox read-only "You are a code reviewer. Run \`git diff HEAD\` to see the changes made for issue #{number}. Review the diff for bugs, edge cases, security issues, or style problems. List your findings clearly. Do NOT modify any files."
-```
-
-Show the Codex review output to the user. If no issues are found, note that and
-continue.
+After the /code-review fixes are applied, invoke `/simplify` to review the
+changed code for quality and reuse issues, and apply any fixes found.
 
 ### 4. Verify 達成基準
 
