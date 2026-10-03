@@ -82,11 +82,20 @@ git worktree add "../${REPO_NAME}-issue-{number}" -b issue-{number}-{slug}
 ```
 
 If CLAUDE.md documents an `APP_PORT` convention, create a `.env` file so the
-dev server uses a non-conflicting port (`APP_PORT = 8000 + issue number`):
+dev server uses a non-conflicting port. Pick the lowest port from 8000 upward that
+is neither listening on this machine nor already assigned to another worktree
+(a worktree without `.env` falls back to the default `8080`):
 
 ```bash
 if grep -q "APP_PORT" CLAUDE.md 2>/dev/null; then
-  echo "APP_PORT=80{NN}" > "../${REPO_NAME}-issue-{number}/.env"
+  USED=$(git worktree list --porcelain | sed -n 's/^worktree //p' | while read -r wt; do
+    if [ -f "$wt/.env" ]; then sed -n 's/^APP_PORT=//p' "$wt/.env"; else echo 8080; fi
+  done)
+  PORT=8000
+  while echo "$USED" | grep -qx "$PORT" || lsof -nP -iTCP:"$PORT" -sTCP:LISTEN >/dev/null 2>&1; do
+    PORT=$((PORT + 1))
+  done
+  echo "APP_PORT=${PORT}" > "../${REPO_NAME}-issue-{number}/.env"
 fi
 ```
 
