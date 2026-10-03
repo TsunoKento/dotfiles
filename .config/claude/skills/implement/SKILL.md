@@ -40,8 +40,10 @@ Check that the current directory is the worktree for the issue:
 git branch --show-current
 ```
 
-The branch should match `issue-{number}-*`. If not, ask the user to `cd` into
-the correct worktree directory first.
+The branch should match `issue-{number}-*`. If not, find the issue's worktree
+in `git worktree list` and switch the session into it with the `EnterWorktree`
+tool (`path` = that worktree's absolute path). If no worktree exists for the
+issue, ask the user to run `/issue` first.
 
 ### 3. Break down the issue into behaviors
 

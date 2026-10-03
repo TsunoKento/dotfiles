@@ -104,11 +104,28 @@ Confirm success with `git worktree list`.
 > If branch creation fails (e.g., already exists), report the error and suggest
 > a corrected branch name.
 
-### 5. Report to the user
+### 5. Switch the session into the worktree
+
+So the user does not have to `cd` or restart Claude, move this session into the
+new worktree with the `EnterWorktree` tool, passing the worktree's absolute path:
+
+```bash
+realpath "../${REPO_NAME}-issue-{number}"
+```
+
+Call `EnterWorktree` with `path` set to that absolute path, then confirm with
+`pwd` and `git branch --show-current` that the session is now on
+`issue-{number}-{slug}`.
+
+> If `EnterWorktree` is unavailable or refuses (e.g., the session is already in
+> another worktree), report it and tell the user to start Claude in the worktree
+> directory instead.
+
+### 6. Report to the user
 
 Show the issue URL, new branch name, worktree path, and APP_PORT (if created).
 
-Then suggest: "Ready to implement? Run `/implement {number}` in the worktree directory."
+Then suggest: "Ready to implement? Run `/implement {number}`."
 
 ---
 
