@@ -35,6 +35,8 @@ config.window_background_gradient = {
    colors = { "#000000" },
 }
 config.show_new_tab_button_in_tab_bar = false
+-- 既定の 16 だと "✳ myapp-issue-12" のようなタブ名が途中で切れる
+config.tab_max_width = 32
 config.colors = {
   tab_bar = {
     inactive_tab_edge = "none",
@@ -42,6 +44,53 @@ config.colors = {
 }
 local SOLID_LEFT_ARROW = wezterm.nerdfonts.ple_lower_right_triangle
 local SOLID_RIGHT_ARROW = wezterm.nerdfonts.ple_upper_left_triangle
+
+-- ペインの作業ディレクトリ名 (末尾の要素) を返す。ホームは "~"
+local function cwd_basename(pane)
+  local cwd = pane.current_working_dir
+  if not cwd then
+    return nil
+  end
+
+  local path
+  if type(cwd) == "userdata" then
+    path = cwd.file_path
+  else
+    path = tostring(cwd):gsub("^file://[^/]*", "")
+  end
+  path = path:gsub("/+$", "")
+
+  if path == wezterm.home_dir then
+    return "~"
+  end
+  return path:match("([^/]+)$")
+end
+
+-- 手入力したタブ名 > "✳ dotfiles" (Claude Code) > "nvim: blog" の順で表示する
+local function tab_label(tab)
+  if tab.tab_title ~= "" then
+    return tab.tab_title
+  end
+
+  local pane = tab.active_pane
+  local title = pane.title
+  local dir = cwd_basename(pane)
+  if not dir then
+    return title
+  end
+
+  -- Claude Code はタイトルを "✳ Claude Code" や "◐ <会話のトピック>" に変えるので、
+  -- 先頭の状態アイコンだけ残してディレクトリ名を出す
+  -- ネイティブ版の実体は ~/.local/share/claude/versions/<バージョン> なのでパスで判定する
+  local process = pane.foreground_process_name or ""
+  local is_claude = process:find("/claude/versions/", 1, true)
+    or process:match("([^/]+)$") == "claude"
+  if is_claude or title:find("Claude Code$") then
+    local icon = title:match("^([\x80-\xFF]+) ")
+    return icon and (icon .. " " .. dir) or dir
+  end
+  return title .. ": " .. dir
+end
 
 wezterm.on("format-tab-title", function(tab, tabs, panes, config, hover, max_width)
   local background = "#5c6d74"
@@ -54,7 +103,7 @@ wezterm.on("format-tab-title", function(tab, tabs, panes, config, hover, max_wid
   end
 
   local edge_foreground = background
-  local title = "   " .. wezterm.truncate_right(tab.active_pane.title, max_width - 1) .. "   "
+  local title = "   " .. wezterm.truncate_right(tab_label(tab), max_width - 1) .. "   "
 
   return {
     { Background = { Color = edge_background } },

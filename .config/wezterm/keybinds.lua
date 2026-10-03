@@ -51,6 +51,16 @@ return {
     { key = "l", mods = "LEADER", action = act.ActivatePaneDirection("Right") },
     { key = "k", mods = "LEADER", action = act.ActivatePaneDirection("Up") },
     { key = "j", mods = "LEADER", action = act.ActivatePaneDirection("Down") },
+
+    -- タブ名を手入力 leader + r（空欄で自動表示に戻す）
+    { key = "r", mods = "LEADER", action = act.PromptInputLine({
+      description = "タブ名 (空欄で自動表示に戻す)",
+      action = wezterm.action_callback(function(window, _, line)
+        if line then
+          window:active_tab():set_title(line)
+        end
+      end),
+    }) },
   },
 
   key_tables = {
