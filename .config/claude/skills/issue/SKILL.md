@@ -5,7 +5,7 @@ description: >
   Use this skill whenever the user wants to start working on a new feature, bug fix,
   or task — even if they say "create an issue for X", "start working on X",
   "make a ticket for X", or "let's tackle X". This skill handles issue creation and
-  worktree setup. Use /implement afterwards to delegate implementation to Codex.
+  worktree setup. Use /implement afterwards to implement the issue.
 ---
 
 # Issue-Driven Development Skill

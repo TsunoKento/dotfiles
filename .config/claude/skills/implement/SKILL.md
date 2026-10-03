@@ -65,7 +65,7 @@ the smallest testable unit of functionality. Present the list to the user:
 最初の振る舞いからテストを書きます。
 ```
 
-Follow any project conventions defined in `AGENTS.md`, `CODEX.md`, or `CLAUDE.md`
+Follow any project conventions defined in `CLAUDE.md`
 if present.
 
 ### 4. TDD cycle (repeat for each behavior)
